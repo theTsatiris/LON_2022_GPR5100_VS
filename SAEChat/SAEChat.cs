@@ -19,7 +19,7 @@ namespace SAEChat
             }
             catch
             {
-                //ALTERNAVIE COURSE OF ACTION, IF CODE IN "TRY" FAILS
+                //ALTERNATIVE COURSE OF ACTION, IF CODE IN "TRY" FAILS
             }
 
             EndPoint senderEndpoint = new IPEndPoint(IPAddress.Any, 0);
