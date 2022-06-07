@@ -1,17 +1,61 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace SAEChat
 {
     class SAEChat
     {
+        static void ReceiverProc(Object obj) 
+        {   
+            byte[] data = new byte[1024];
+            Socket sock = (Socket)obj;
+
+            string localIP = "";
+            try
+            {
+                localIP = GetLocalIPAddress();
+            }
+            catch
+            {
+                //ALTERNAVIE COURSE OF ACTION, IF CODE IN "TRY" FAILS
+            }
+
+            EndPoint senderEndpoint = new IPEndPoint(IPAddress.Any, 0);
+
+            while (true)
+            {
+                int numOfBytes = sock.ReceiveFrom(data, ref senderEndpoint);
+                
+                if(localIP != ((IPEndPoint)senderEndpoint).Address.ToString())
+                { 
+                    string text = System.Text.Encoding.ASCII.GetString(data, 0, numOfBytes);
+                    Console.WriteLine(text);
+                }
+            }
+        }
+
+        static string GetLocalIPAddress()
+        {
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+
+            foreach(IPAddress addr in host.AddressList)
+            {
+                if(addr.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    return addr.ToString();
+                }
+            }
+            throw new Exception("ERROR: No network adapters with an IPv4 address in the system!");
+        }
+
         static void Main(string[] args)
         {
 
             //OUTBOUND TRAFFIC INFRASTRUCTURE
-            IPAddress remoteAddr = IPAddress.Broadcast; //IPAddress.Broadcast is equiavalent to IPAddress.Parse("255.255.255.255")
-            IPEndPoint destinationEndPoint = new IPEndPoint(remoteAddr, 55555);
+            IPAddress destinationAddr = IPAddress.Broadcast; //IPAddress.Broadcast is equiavalent to IPAddress.Parse("255.255.255.255")
+            IPEndPoint destinationEndPoint = new IPEndPoint(destinationAddr, 55555);
 
             Console.WriteLine("Sending text data to " + destinationEndPoint.ToString());
 
@@ -20,23 +64,21 @@ namespace SAEChat
             //*******************************
 
             //INBOUND TRAFFIC INFRASTRUCTURE
-            IPAddress addr = IPAddress.Any;//IPAddress.Any is equivalent to IPAddress.Parse("0.0.0.0")
-            IPEndPoint endPoint = new IPEndPoint(addr, 55555); //five fives :D
+            IPAddress localAddr = IPAddress.Any;//IPAddress.Any is equivalent to IPAddress.Parse("0.0.0.0")
+            IPEndPoint localEndPoint = new IPEndPoint(localAddr, 55555); //five fives :D
 
-            sock.Bind(endPoint);
-            Console.WriteLine("Opening socket, echoing from " + addr.ToString() + ":" + endPoint.Port);
+            sock.Bind(localEndPoint);
+            Console.WriteLine("Opening socket, echoing from " + localAddr.ToString() + ":" + localEndPoint.Port);
             //*******************************
 
-            byte[] data = new byte[1024];
+            Thread receiverThread = new Thread(new ParameterizedThreadStart(ReceiverProc));
+            receiverThread.Start(sock);
+
             while (true)
             {
                 string text = Console.ReadLine();
-                data = System.Text.Encoding.ASCII.GetBytes(text);
-                sock.SendTo(data, destinationEndPoint);
-
-                int numOfBytes = sock.Receive(data);
-                text = System.Text.Encoding.ASCII.GetString(data, 0, numOfBytes);
-                Console.WriteLine(text);
+                byte[] outboundData = System.Text.Encoding.ASCII.GetBytes(text);
+                sock.SendTo(outboundData, destinationEndPoint);
             }
         }
     }
