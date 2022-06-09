@@ -9,7 +9,8 @@ namespace P2P_ChatTracker
     {
         static void Main(string[] args)
         {
-            Dictionary<IPEndPoint, string> connectedClients = new Dictionary<IPEndPoint, string>();
+            //Dictionary<IPEndPoint, string> connectedClients = new Dictionary<IPEndPoint, string>();
+            List<IPEndPoint> connectedClients = new List<IPEndPoint>();
 
             IPAddress addr = IPAddress.Any;//IPAddress.Any is equivalent to IPAddress.Parse("0.0.0.0")
             IPEndPoint endPoint = new IPEndPoint(addr, 55555); //five fives :D
@@ -25,55 +26,27 @@ namespace P2P_ChatTracker
             while (true)
             {
                 int numOfBytes = sock.ReceiveFrom(data, ref senderEndp);
+                IPEndPoint newClient = (IPEndPoint)senderEndp;
                 string text = System.Text.Encoding.ASCII.GetString(data, 0, numOfBytes);
-                string[] splitText = text.Split('|');
-                if (splitText[0] == "<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>")
+                if (text == "<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>")
                 {
                     Console.WriteLine("NEW CONNECTION REQUEST!");
                     //adding new client
-                    if (!connectedClients.ContainsKey((IPEndPoint)senderEndp))
+                    if (!connectedClients.Contains(newClient))
                     {
-                        if (splitText.Length > 1)
+                        Console.WriteLine("ADDED CLIENT " + newClient.ToString());
+                        
+                        foreach(IPEndPoint endp in connectedClients)
                         {
-                            Console.WriteLine("ADDED CLIENT " + ((IPEndPoint)senderEndp).ToString());
-                            connectedClients.Add((IPEndPoint)senderEndp, splitText[1]);
-                        }
-                        else
-                            Console.WriteLine("ILLEGAL CONNECTION REQUEST!");
-                    }
-                    else
-                    {
-                        if (splitText.Length > 1)
-                        {
-                            Console.WriteLine("UPDATED CLIENT " + ((IPEndPoint)senderEndp).ToString());
-                            connectedClients[(IPEndPoint)senderEndp] = splitText[1];
-                        }
-                        else
-                        {
-                            Console.WriteLine("UPDATED CLIENT " + ((IPEndPoint)senderEndp).ToString());
-                            connectedClients[(IPEndPoint)senderEndp] = "ANONYMOUS";
-                        }
-                    }
-                    byte[] acknowledgmentData = System.Text.Encoding.ASCII.GetBytes("<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>");
-                    sock.SendTo(acknowledgmentData, (IPEndPoint)senderEndp);
-                }
-                else
-                {
-                    if (connectedClients.ContainsKey((IPEndPoint)senderEndp))
-                    {
-                        //forwarding message to other clients
-                        string senderIP = ((IPEndPoint)senderEndp).Address.ToString();
-                        int senderPort = ((IPEndPoint)senderEndp).Port;
+                            //Send current client data to new client
+                            byte[] dataToNewClient = System.Text.Encoding.ASCII.GetBytes(endp.ToString());
+                            sock.SendTo(dataToNewClient, newClient);
 
-                        string newText = "[" + connectedClients[(IPEndPoint)senderEndp] + "] " + text;
-                        byte[] forwardingData = System.Text.Encoding.ASCII.GetBytes(newText);
-                        foreach (IPEndPoint endp in connectedClients.Keys)
-                        {
-                            if ((endp.Address.ToString() != senderIP) || (endp.Port != senderPort))
-                            {
-                                sock.SendTo(forwardingData, endp);
-                            }
+                            //Send new client data to current client
+                            byte[] dataToCurrClient = System.Text.Encoding.ASCII.GetBytes(newClient.ToString());
+                            sock.SendTo(dataToCurrClient, endp);
                         }
+                        connectedClients.Add(newClient);
                     }
                 }
             }
