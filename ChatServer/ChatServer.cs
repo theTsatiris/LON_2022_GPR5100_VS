@@ -31,7 +31,7 @@ namespace ChatServer
                 {
                     Console.WriteLine("NEW CONNECTION REQUEST!");
                     //adding new client
-                    if(!connectedClients.ContainsKey((IPEndPoint)senderEndp))
+                    if (!connectedClients.ContainsKey((IPEndPoint)senderEndp))
                     {
                         if (splitText.Length > 1)
                         {
@@ -40,6 +40,19 @@ namespace ChatServer
                         }
                         else
                             Console.WriteLine("ILLEGAL CONNECTION REQUEST!");
+                    }
+                    else
+                    {
+                        if (splitText.Length > 1)
+                        {
+                            Console.WriteLine("UPDATED CLIENT " + ((IPEndPoint)senderEndp).ToString());
+                            connectedClients[(IPEndPoint)senderEndp] = splitText[1];
+                        }
+                        else
+                        {
+                            Console.WriteLine("UPDATED CLIENT " + ((IPEndPoint)senderEndp).ToString());
+                            connectedClients[(IPEndPoint)senderEndp] = "ANONYMOUS";
+                        }
                     }
                     byte[] acknowledgmentData = System.Text.Encoding.ASCII.GetBytes("<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>");
                     sock.SendTo(acknowledgmentData, (IPEndPoint)senderEndp);
