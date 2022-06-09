@@ -7,7 +7,9 @@ namespace ChatClient
 {
     class ChatClient
     {
-        public static bool connectionEstablished;
+        public static ChatClient client = new ChatClient();
+
+        bool connectionEstablished;
 
         static void ReceiverProc(Object obj)
         {
@@ -33,9 +35,8 @@ namespace ChatClient
                 string text = System.Text.Encoding.ASCII.GetString(data, 0, numOfBytes);
                 if(text == "<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>")
                 {
+                    client.connectionEstablished = true;
                     Console.WriteLine("Connection established!");
-                    connectionEstablished = true;
-                    Console.WriteLine(connectionEstablished);
                 }
                 else
                 {
@@ -60,7 +61,7 @@ namespace ChatClient
 
         static void Main(string[] args)
         {
-            connectionEstablished = false;
+            client.connectionEstablished = false;
 
             //OUTBOUND TRAFFIC INFRASTRUCTURE
             Console.WriteLine("Please type the IP address of the server and press enter:");
@@ -85,14 +86,18 @@ namespace ChatClient
             Thread receiverThread = new Thread(new ParameterizedThreadStart(ReceiverProc));
             receiverThread.Start(sock);
 
+            Console.WriteLine("Please type a username:");
+            string username = Console.ReadLine();
+
             //Send request to enter the chat room to server
-            byte[] connectionData = System.Text.Encoding.ASCII.GetBytes("<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>");
+            byte[] connectionData = System.Text.Encoding.ASCII.GetBytes("<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>|" + username);
             sock.SendTo(connectionData, destinationEndPoint);
             Console.WriteLine("Sent connection request...");
 
             while (true)
             {
-                if (connectionEstablished)
+                Console.WriteLine(".");
+                if (client.connectionEstablished)
                 { 
                     string text = Console.ReadLine();
                     byte[] outboundData = System.Text.Encoding.ASCII.GetBytes(text);

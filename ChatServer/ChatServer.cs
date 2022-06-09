@@ -9,7 +9,7 @@ namespace ChatServer
     {
         static void Main(string[] args)
         {
-            List<IPEndPoint> connectedClients = new List<IPEndPoint>();
+            Dictionary<IPEndPoint, string> connectedClients = new Dictionary<IPEndPoint, string>();
 
             IPAddress addr = IPAddress.Any;//IPAddress.Any is equivalent to IPAddress.Parse("0.0.0.0")
             IPEndPoint endPoint = new IPEndPoint(addr, 55555); //five fives :D
@@ -26,30 +26,40 @@ namespace ChatServer
             {
                 int numOfBytes = sock.ReceiveFrom(data, ref senderEndp);
                 string text = System.Text.Encoding.ASCII.GetString(data, 0, numOfBytes);
-                if(text == "<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>")
+                string[] splitText = text.Split('|');
+                if(splitText[0] == "<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>")
                 {
                     Console.WriteLine("NEW CONNECTION REQUEST!");
                     //adding new client
-                    if(!connectedClients.Contains((IPEndPoint)senderEndp))
+                    if(!connectedClients.ContainsKey((IPEndPoint)senderEndp))
                     {
-                        Console.WriteLine("ADDED CLIENT " + ((IPEndPoint)senderEndp).ToString());
-                        connectedClients.Add((IPEndPoint)senderEndp);
+                        if (splitText.Length > 1)
+                        {
+                            Console.WriteLine("ADDED CLIENT " + ((IPEndPoint)senderEndp).ToString());
+                            connectedClients.Add((IPEndPoint)senderEndp, splitText[1]);
+                        }
+                        else
+                            Console.WriteLine("ILLEGAL CONNECTION REQUEST!");
                     }
-
                     byte[] acknowledgmentData = System.Text.Encoding.ASCII.GetBytes("<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>");
                     sock.SendTo(acknowledgmentData, (IPEndPoint)senderEndp);
                 }
                 else
                 {
-                    //forwarding message to other clients
-                    string senderIP = ((IPEndPoint)senderEndp).Address.ToString();
-                    int senderPort = ((IPEndPoint)senderEndp).Port;
-                    byte[] forwardingData = System.Text.Encoding.ASCII.GetBytes(text);
-                    foreach (IPEndPoint endp in connectedClients)
-                    {
-                        if((endp.Address.ToString() != senderIP) || (endp.Port != senderPort))
+                    if(connectedClients.ContainsKey((IPEndPoint)senderEndp))
+                    { 
+                        //forwarding message to other clients
+                        string senderIP = ((IPEndPoint)senderEndp).Address.ToString();
+                        int senderPort = ((IPEndPoint)senderEndp).Port;
+
+                        string newText = "[" + connectedClients[(IPEndPoint)senderEndp] + "] " + text; 
+                        byte[] forwardingData = System.Text.Encoding.ASCII.GetBytes(newText);
+                        foreach (IPEndPoint endp in connectedClients.Keys)
                         {
-                            sock.SendTo(forwardingData, endp);
+                            if((endp.Address.ToString() != senderIP) || (endp.Port != senderPort))
+                            {
+                                sock.SendTo(forwardingData, endp);
+                            }
                         }
                     }
                 }
