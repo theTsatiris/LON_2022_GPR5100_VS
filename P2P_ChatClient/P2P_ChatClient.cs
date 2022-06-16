@@ -6,8 +6,40 @@ using System.Collections.Generic;
 
 namespace P2P_ChatClient
 {
+    public class ThreadParams
+    {
+        public Socket socket;
+        public List<IPEndPoint> clients;
+    }
+
     class P2P_ChatClient
     {
+        static void ReceiverProc(Object obj)
+        {
+            byte[] data = new byte[1024];
+
+            ThreadParams parameters = (ThreadParams)obj;
+
+            while (true)
+            {
+                int numOfBytes = parameters.socket.Receive(data);
+                string text = System.Text.Encoding.ASCII.GetString(data, 0, numOfBytes);
+                string[] splitText = text.Split('|');
+                if(splitText[0] == "<ENDPOINTINFO>")
+                {
+                    string[] endpointData = splitText[1].Split(':');
+                    IPAddress endpointAddr = IPAddress.Parse(endpointData[0]);
+                    int endpoinPort = int.Parse(endpointData[1]);
+                    IPEndPoint endp = new IPEndPoint(endpointAddr, endpoinPort);
+                    parameters.clients.Add(endp);
+                }
+                else
+                {
+                    Console.WriteLine(text);
+                }
+            }
+        }
+
         static void Main(string[] args)
         {
             List<IPEndPoint> connectedClients = new List<IPEndPoint>();
@@ -32,8 +64,12 @@ namespace P2P_ChatClient
             sock.Bind(localEndPoint);
             Console.WriteLine("Opening socket for incomming messages...");
 
+            ThreadParams parameters = new ThreadParams();
+            parameters.socket = sock;
+            parameters.clients = connectedClients;
+
             Thread receiverThread = new Thread(new ParameterizedThreadStart(ReceiverProc));
-            receiverThread.Start(sock);
+            receiverThread.Start(parameters);
 
             Console.WriteLine("Please type a username:");
             string username = Console.ReadLine();

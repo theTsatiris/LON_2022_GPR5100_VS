@@ -26,6 +26,7 @@ namespace P2P_ChatTracker
             while (true)
             {
                 int numOfBytes = sock.ReceiveFrom(data, ref senderEndp);
+                Console.WriteLine("RECEIVED DATA!!!");
                 IPEndPoint newClient = (IPEndPoint)senderEndp;
                 string text = System.Text.Encoding.ASCII.GetString(data, 0, numOfBytes);
                 if (text == "<342%$%^#$kjhjfGDhved%^jkgkF6745eo98%3f>")
@@ -39,11 +40,11 @@ namespace P2P_ChatTracker
                         foreach(IPEndPoint endp in connectedClients)
                         {
                             //Send current client data to new client
-                            byte[] dataToNewClient = System.Text.Encoding.ASCII.GetBytes(endp.ToString());
+                            byte[] dataToNewClient = System.Text.Encoding.ASCII.GetBytes("<ENDPOINTINFO>|" + endp.ToString());
                             sock.SendTo(dataToNewClient, newClient);
 
                             //Send new client data to current client
-                            byte[] dataToCurrClient = System.Text.Encoding.ASCII.GetBytes(newClient.ToString());
+                            byte[] dataToCurrClient = System.Text.Encoding.ASCII.GetBytes("<ENDPOINTINFO>|" + newClient.ToString());
                             sock.SendTo(dataToCurrClient, endp);
                         }
                         connectedClients.Add(newClient);
